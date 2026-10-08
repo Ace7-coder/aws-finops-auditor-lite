@@ -6,7 +6,12 @@ import sys
 from typing import List, Dict
 
 # Enterprise Modules
-from remediation_generator import generate_remediation_script
+try:
+    from remediation_generator import generate_remediation_script
+    HAS_REMEDIATION = True
+except ModuleNotFoundError:
+    HAS_REMEDIATION = False
+    
 from compliance_exporter import generate_compliance_report
 
 class InfrastructureAuditor:
@@ -160,7 +165,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="AWS FinOps Auditor")
     parser.add_argument('--file', type=str, required=True, help="Path to AWS usage CSV file")
     parser.add_argument('--remediate', action='store_true', help="Generate executable script to delete wasted resources (Enterprise)")
-    parser.add_argument('--compliance', action='store_true', help="Export SOC2/ISO27001 audit evidence CSV (Enterprise)")
+    parser.add_argument('--compliance', action='store_true', help="Export SOC2/ISO27001 audit evidence CSV")
     args = parser.parse_args()
     
     auditor = InfrastructureAuditor()
@@ -179,13 +184,17 @@ if __name__ == '__main__':
         print(f"==========================================")
         print("Generated 'audit_report.json' and 'executive_summary.md'.")
         
-        # Enterprise triggers utilizing the raw dataframe (real resource IDs)
+        # Enterprise trigger for remediation
         if args.remediate:
-            print("\n[Enterprise Feature] Triggering automated remediation generator...")
-            generate_remediation_script(raw_df, "remediate_anomalies.sh")
+            if HAS_REMEDIATION:
+                print("\n[Enterprise Feature] Triggering automated remediation generator...")
+                generate_remediation_script(raw_df, "remediate_anomalies.sh")
+            else:
+                print("\n[Lite Version] 1-Click Remediation is an Enterprise feature.")
+                print("Upgrade to Enterprise to automatically generate deletion scripts!")
             
         if args.compliance:
-            print("\n[Enterprise Feature] Triggering SOC2/ISO27001 audit exporter...")
+            print("\n[Compliance Feature] Triggering SOC2/ISO27001 audit exporter...")
             generate_compliance_report(raw_df)
             
     except Exception as e:
