@@ -1,0 +1,4 @@
+Resource_ID,Monthly_Cost_USD,CPU_Util,Unattached_Storage_Cost,Is_Public,Is_Encrypted
+vol-0123456789abcdef0,15.50,0.0,15.50,False,False
+i-0987654321fedcba0,120.00,2.1,0.0,True,True
+vol-1111222233334444,45.00,85.4,0.0,False,True
