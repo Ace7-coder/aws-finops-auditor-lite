@@ -1,0 +1,64 @@
+name: 'Cloud FinOps Cost and Waste Auditor'
+author: 'Ace7-coder'
+description: 'Audit AWS billing and usage exports with Python & Pandas to flag orphaned EBS storage, idle EC2 compute, and security anomalies.'
+branding:
+  icon: 'dollar-sign'
+  color: 'orange'
+
+inputs:
+  file:
+    description: 'Path to the AWS usage/billing CSV file to audit'
+    required: false
+    default: 'sample_aws_data.csv'
+  compliance:
+    description: 'Set to true to export SOC2/ISO27001 compliance evidence CSV'
+    required: false
+    default: 'false'
+
+outputs:
+  total_waste:
+    description: 'Total monthly AWS waste identified in USD'
+    value: ${{ steps.run-audit.outputs.total_waste }}
+  annualized_waste:
+    description: 'Projected annual AWS waste identified in USD'
+    value: ${{ steps.run-audit.outputs.annualized_waste }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install Dependencies
+      shell: bash
+      run: |
+        python3 -m pip install --quiet pandas
+
+    - name: Run FinOps Infrastructure Audit
+      id: run-audit
+      shell: bash
+      run: |
+         target_file="${{ inputs.file }}"
+        if [ ! -f "$target_file" ] && [ -f "${{ github.action_path }}/$target_file" ]; then
+          target_file="${{ github.action_path }}/$target_file"
+        fi
+
+         COMPLIANCE_FLAG=""
+        if [ "${{ inputs.compliance }}" = "true" ]; then
+          COMPLIANCE_FLAG="--compliance"
+        fi
+
+        python3 "${{ github.action_path }}/infrastructure_auditor.py" --file "$target_file" $COMPLIANCE_FLAG
+
+        if [ -f "executive_summary.md" ] && [ -n "$GITHUB_STEP_SUMMARY" ]; then
+          cat executive_summary.md >> "$GITHUB_STEP_SUMMARY"
+        fi
+
+        if [ -f "audit_report.json" ]; then
+          WASTE=$(python3 -c "import json; print(json.load(open('audit_report.json')).get('total_waste', 0))")
+          ANNUAL=$(python3 -c "import json; print(json.load(open('audit_report.json')).get('annualized_waste', 0))")
+          echo "total_waste=$WASTE" >> "$GITHUB_OUTPUT"
+          echo "annualized_waste=$ANNUAL" >> "$GITHUB_OUTPUT"
+        fi
