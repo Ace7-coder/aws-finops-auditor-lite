@@ -40,22 +40,18 @@ runs:
       id: run-audit
       shell: bash
       run: |
-         target_file="${{ inputs.file }}"
+        target_file="${{ inputs.file }}"
         if [ ! -f "$target_file" ] && [ -f "${{ github.action_path }}/$target_file" ]; then
           target_file="${{ github.action_path }}/$target_file"
         fi
-
-         COMPLIANCE_FLAG=""
+        COMPLIANCE_FLAG=""
         if [ "${{ inputs.compliance }}" = "true" ]; then
           COMPLIANCE_FLAG="--compliance"
         fi
-
         python3 "${{ github.action_path }}/infrastructure_auditor.py" --file "$target_file" $COMPLIANCE_FLAG
-
         if [ -f "executive_summary.md" ] && [ -n "$GITHUB_STEP_SUMMARY" ]; then
           cat executive_summary.md >> "$GITHUB_STEP_SUMMARY"
         fi
-
         if [ -f "audit_report.json" ]; then
           WASTE=$(python3 -c "import json; print(json.load(open('audit_report.json')).get('total_waste', 0))")
           ANNUAL=$(python3 -c "import json; print(json.load(open('audit_report.json')).get('annualized_waste', 0))")
