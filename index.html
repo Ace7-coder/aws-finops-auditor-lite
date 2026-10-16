@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AWS EBS Waste & Savings Plan Lock-In Calculator | AWS FinOps Auditor</title>
+  <meta name="description" content="Calculate how much orphaned AWS EBS storage, forgotten snapshots, and idle EC2 instances inflate your AWS Compute Savings Plan commitments." />
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #ff9900;
+      --danger: #f85149;
+      --success: #2ea043;
+    }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { margin: 0; padding: 32px 16px; background: var(--bg); color: var(--text); line-height: 1.5; }
+    .container { max-width: 860px; margin: 0 auto; }
+    .badge { display: inline-block; background: rgba(255, 153, 0, 0.15); color: var(--accent); border: 1px solid var(--accent); padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-bottom: 12px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    p.lead { color: var(--muted); margin: 0 0 28px; font-size: 16px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+    .field { margin-bottom: 18px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    input, select { width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 15px; }
+    .metric-box { padding: 16px; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); margin-bottom: 14px; }
+    .metric-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .metric-value { font-size: 28px; font-weight: 700; color: var(--danger); margin-top: 4px; }
+    .metric-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .cta-box { margin-top: 24px; background: linear-gradient(135deg, rgba(255,153,0,0.12), rgba(46,160,67,0.12)); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+    .btn { text-decoration: none; padding: 12px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-block; }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    code { background: #000; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <span class="badge">AWS FinOps Interactive Tool</span>
+    <h1>AWS Orphaned Storage & Savings Plan Lock-In Calculator</h1>
+    <p class="lead">Estimate your silent EBS & EC2 waste before locking bloated compute baselines into a 1-year or 3-year AWS Savings Plan.</p>
+
+    <div class="grid">
+      <div class="card">
+        <div class="field">
+          <label for="ebsGb">Unattached EBS Volumes (Total GB)</label>
+          <input type="number" id="ebsGb" value="2500" min="0" step="100" oninput="calculate()" />
+          <div class="hint">Volumes sitting in <code>available</code> state with 0% I/O over 30 days.</div>
+        </div>
+
+        <div class="field">
+          <label for="ebsType">EBS Volume Type Pricing (us-east-1)</label>
+          <select id="ebsType" onchange="calculate()">
+            <option value="0.08">gp3 General Purpose SSD ($0.08 / GB-month)</option>
+            <option value="0.10">gp2 General Purpose SSD ($0.10 / GB-month)</option>
+            <option value="0.125">io2 Provisioned IOPS SSD ($0.125 / GB-month)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="snapGb">Orphaned EBS Snapshots (Total GB)</label>
+          <input type="number" id="snapGb" value="4000" min="0" step="100" oninput="calculate()" />
+          <div class="hint">Billed at AWS standard snapshot rate ($0.05 / GB-month).</div>
+        </div>
+
+        <div class="field">
+          <label for="idleEc2">Idle EC2 Compute Spend ($ / Month)</label>
+          <input type="number" id="idleEc2" value="650" min="0" step="50" oninput="calculate()" />
+          <div class="hint">Instances running under 5% CPU utilization across dev/staging/prod.</div>
+        </div>
+
+        <div class="field">
+          <label for="spTerm">Planned Compute Savings Plan Commitment</label>
+          <select id="spTerm" onchange="calculate()">
+            <option value="12">1-Year Compute Savings Plan (~28% Discount)</option>
+            <option value="36">3-Year Compute Savings Plan (~50% Discount)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="metric-box">
+          <div class="metric-label">Monthly Preventable AWS Waste</div>
+          <div class="metric-value" id="monthlyWaste">$1,050.00 / mo</div>
+          <div class="metric-sub" id="storageBreakdown">Storage: $400/mo | Idle EC2: $650/mo</div>
+        </div>
+
+        <div class="metric-box">
+          <div class="metric-label">Annualized Unowned Infrastructure Drift</div>
+          <div class="metric-value" id="annualWaste">$12,600.00 / yr</div>
+          <div class="metric-sub">Silent baseline bloat burning engineering budget every 12 months.</div>
+        </div>
+
+        <div class="metric-box">
+          <div class="metric-label">Savings Plan Over-Commitment Penalty</div>
+          <div class="metric-value" id="spPenalty">$5,616.00 locked in</div>
+          <div class="metric-sub">Wasted compute commitment you cannot cancel if you buy a Savings Plan before auditing idle EC2.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cta-box">
+      <h3 style="margin: 0 0 8px;">Audit Your Real AWS Environment in 60 Seconds</h3>
+      <p style="margin: 0; color: var(--muted); font-size: 14px;">
+        Instead of hunting through Cost Explorer manually, run the open-source Python & Pandas CLI to isolate <code>available</code> EBS volumes, idle EC2 instances, and unencrypted resources, or upgrade to the Enterprise Tier for multi-account AWS Organization scanning and 1-click bash remediation scripts (<code>remediate_anomalies.sh</code>).
+      </p>
+      <div class="btn-row">
+        <a class="btn btn-primary" href="https://aisser.gumroad.com/l/krgac" target="_blank" rel="noopener">Get Enterprise Suite ($99 Lifetime Access)</a>
+        <a class="btn btn-secondary" href="https://github.com/Ace7-coder/aws-finops-auditor-lite" target="_blank" rel="noopener">Clone Free Open-Source CLI on GitHub</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function calculate() {
+      const ebsGb = parseFloat(document.getElementById('ebsGb').value) || 0;
+      const ebsRate = parseFloat(document.getElementById('ebsType').value) || 0.08;
+      const snapGb = parseFloat(document.getElementById('snapGb').value) || 0;
+      const idleEc2 = parseFloat(document.getElementById('idleEc2').value) || 0;
+      const spMonths = parseInt(document.getElementById('spTerm').value, 10) || 12;
+
+      const storageWaste = (ebsGb * ebsRate) + (snapGb * 0.05);
+      const monthlyTotal = storageWaste + idleEc2;
+      const annualTotal = monthlyTotal * 12;
+
+      const discountFactor = spMonths === 36 ? 0.50 : 0.72;
+      const lockedWaste = idleEc2 * discountFactor * spMonths;
+
+      document.getElementById('monthlyWaste').textContent = '$' + monthlyTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' / mo';
+      document.getElementById('storageBreakdown').textContent = 'Orphaned EBS + Snapshots: $' + storageWaste.toFixed(0) + '/mo | Idle EC2: $' + idleEc2.toFixed(0) + '/mo';
+      document.getElementById('annualWaste').textContent = '$' + annualTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' / yr';
+      document.getElementById('spPenalty').textContent = '$' + lockedWaste.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' locked in';
+    }
+    calculate();
+  </script>
+</body>
+</html>
