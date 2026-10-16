@@ -1,6 +1,6 @@
 name: 'Cloud FinOps Cost and Waste Auditor'
 author: 'Ace7-coder'
-description: 'Audit AWS billing and usage exports with Python & Pandas to flag orphaned EBS storage, idle EC2 compute, and security anomalies.'
+description: 'Audit AWS usage exports in Python & Pandas to flag orphaned EBS storage, idle EC2, and cost waste.'
 branding:
   icon: 'dollar-sign'
   color: 'orange'
