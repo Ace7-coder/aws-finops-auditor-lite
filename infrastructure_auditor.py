@@ -11,8 +11,16 @@ try:
     HAS_REMEDIATION = True
 except ModuleNotFoundError:
     HAS_REMEDIATION = False
-    
-from compliance_exporter import generate_compliance_report
+
+try:
+    from compliance_exporter import generate_compliance_report
+    HAS_COMPLIANCE = True
+except ModuleNotFoundError:
+    HAS_COMPLIANCE = False
+
+ENTERPRISE_URL = "https://aisser.gumroad.com/l/krgac"
+GITHUB_LITE_URL = "https://github.com/Ace7-coder/aws-finops-auditor-lite"
+
 
 class InfrastructureAuditor:
     def __init__(self, salt: str = "infra_secure_2024"):
@@ -26,26 +34,26 @@ class InfrastructureAuditor:
             'totalcost': 'amount',
             'monthly_cost_usd': 'amount',
             'monthly_cost': 'amount',
-            
+
             'resourceid': 'resource_id',
             'resource_id': 'resource_id',
             'instanceid': 'resource_id',
             'instance_id': 'resource_id',
             'server_id': 'resource_id',
-            
+
             'publicip': 'is_public',
             'public_ip': 'is_public',
             'is_public': 'is_public',
-            
+
             'cpu_util': 'cpu_utilization',
             'cpu_utilization': 'cpu_utilization',
             'cpu': 'cpu_utilization',
             'avg_cpu_usage_percent': 'cpu_utilization',
             'cpu_usage': 'cpu_utilization',
-            
+
             'unattached_storage_cost_usd': 'unattached_storage_cost',
             'unattached_storage_cost': 'unattached_storage_cost',
-            
+
             'is_encrypted': 'is_encrypted',
             'encrypted': 'is_encrypted'
         }
@@ -58,7 +66,7 @@ class InfrastructureAuditor:
             if clean_col in self.alias_map:
                 new_cols[col] = self.alias_map[clean_col]
             else:
-                new_cols[col] = clean_col # keep original normalized
+                new_cols[col] = clean_col
         return df.rename(columns=new_cols)
 
     def validate_schema(self, df: pd.DataFrame) -> None:
@@ -68,7 +76,7 @@ class InfrastructureAuditor:
             missing.append("Cost/Amount (e.g., 'monthly_cost_usd', 'Cost', 'amount')")
         if 'resource_id' not in df.columns:
             missing.append("Resource ID (e.g., 'server_id', 'ResourceID', 'resource_id')")
-        
+
         if missing:
             col_list = ", ".join([f"'{c}'" for c in df.columns])
             raise ValueError(
@@ -84,7 +92,7 @@ class InfrastructureAuditor:
     def process_data(self, df: pd.DataFrame) -> pd.DataFrame:
         df = self.normalize_columns(df)
         self.validate_schema(df)
-        
+
         # Ensure numeric type on amount
         df['amount'] = pd.to_numeric(df['amount'], errors='coerce').fillna(0.0)
 
@@ -95,71 +103,85 @@ class InfrastructureAuditor:
     def calculate_waste(self, df: pd.DataFrame) -> float:
         """Multi-vector financial cost-waste calculations."""
         total_waste = 0.0
-        
+
         # 1. Idle Compute Waste (CPU < 5%)
         if 'cpu_utilization' in df.columns:
             cpu_series = pd.to_numeric(df['cpu_utilization'], errors='coerce')
             idle_mask = (cpu_series < 5.0) | ((df['amount'] > 0) & (cpu_series.isna()))
             total_waste += float(df.loc[idle_mask, 'amount'].sum())
         else:
-            # Baseline: flag non-zero records without monitored compute activity
             waste_mask = df['amount'] > 0
             total_waste += float(df.loc[waste_mask, 'amount'].sum()) if not df.loc[waste_mask].empty else 0.0
-            
+
         # 2. Unattached Storage Waste
         if 'unattached_storage_cost' in df.columns:
             storage_series = pd.to_numeric(df['unattached_storage_cost'], errors='coerce').fillna(0.0)
             total_waste += float(storage_series.sum())
-            
+
         return total_waste
 
     def detect_security_anomalies(self, df: pd.DataFrame) -> List[str]:
         """Expanded security anomaly detection."""
         anomalies = []
-        
+
         # Public IP Exposure
         if 'is_public' in df.columns:
             is_pub = df['is_public'].astype(str).str.strip().str.lower().isin(['true', '1', 'yes', 't'])
             public_count = int(is_pub.sum())
             if public_count > 0:
                 anomalies.append(f"CRITICAL: {public_count} resources exposed to public internet.")
-                
+
         # Unencrypted Resources
         if 'is_encrypted' in df.columns:
             is_enc = df['is_encrypted'].astype(str).str.strip().str.lower().isin(['false', '0', 'no', 'f'])
             unencrypted_count = int(is_enc.sum())
             if unencrypted_count > 0:
                 anomalies.append(f"HIGH: {unencrypted_count} resources are currently unencrypted.")
-                
+
         return anomalies
 
     def generate_outputs(self, df: pd.DataFrame, results: Dict):
         with open('audit_report.json', 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=4)
-        
+
         with open('executive_summary.md', 'w', encoding='utf-8') as f:
             f.write("# Infrastructure Audit Summary\n\n")
-            f.write(f"- **Total Waste Identified:** ${results['total_waste']:,.2f}\n")
+            f.write(f"- **Monthly Waste Identified:** ${results['total_waste']:,.2f}/mo\n")
+            f.write(f"- **Projected Annual Waste:** ${results['annualized_waste']:,.2f}/yr\n")
             f.write(f"- **Security Flags:** {len(results['anomalies'])}\n\n")
             if results['anomalies']:
                 f.write("### Security Notices\n")
                 for anomaly in results['anomalies']:
                     f.write(f"- {anomaly}\n")
+
+            if not HAS_REMEDIATION:
+                f.write("\n---\n")
+                f.write("### Automate Cleanup Across Your AWS Organization (Enterprise Tier)\n")
+                f.write(
+                    f"Stop deleting orphaned resources manually. Upgrade to the **Enterprise AWS FinOps Auditor** "
+                    f"to unlock:\n"
+                    f"- **1-Click Bash Remediation (`--remediate`):** Auto-generate `remediate_anomalies.sh` for safe PR review.\n"
+                    f"- **Multi-Account AWS `sts:AssumeRole` Engine:** Scan every sub-account in your AWS Organization.\n"
+                    f"- **Automated Friday CI/CD Schedules:** Catch cost drift via GitHub Actions before the bill lands.\n\n"
+                    f"**Get Lifetime Enterprise Access ($99 one-time):** {ENTERPRISE_URL}\n"
+                )
             f.write("\n---\n*Generated by AWS FinOps Auditor*\n")
 
     def run_pipeline(self, df: pd.DataFrame) -> Dict:
         df = self.process_data(df)
         waste = self.calculate_waste(df)
         anomalies = self.detect_security_anomalies(df)
-        
+
         results = {
             "total_waste": round(waste, 2),
+            "annualized_waste": round(waste * 12, 2),
             "anomalies": anomalies,
             "records_analyzed": len(df)
         }
-        
+
         self.generate_outputs(df, results)
         return results
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="AWS FinOps Auditor")
@@ -167,36 +189,46 @@ if __name__ == '__main__':
     parser.add_argument('--remediate', action='store_true', help="Generate executable script to delete wasted resources (Enterprise)")
     parser.add_argument('--compliance', action='store_true', help="Export SOC2/ISO27001 audit evidence CSV")
     args = parser.parse_args()
-    
+
     auditor = InfrastructureAuditor()
     try:
         raw_df = pd.read_csv(args.file)
         print(f"Scanning {args.file} ({len(raw_df)} records)...")
-        
+
         # Pass a copy to the main pipeline so it can anonymize IDs safely
         results = auditor.run_pipeline(raw_df.copy())
-        
-        print(f"\nAudit Complete!")
-        print(f"==========================================")
-        print(f"Records Analyzed:       {results['records_analyzed']}")
-        print(f"Total Waste Identified: ${results['total_waste']:,.2f}")
-        print(f"Security Flags:         {len(results['anomalies'])}")
-        print(f"==========================================")
+
+        print("\nAudit Complete!")
+        print("==================================================")
+        print(f"Records Analyzed:        {results['records_analyzed']}")
+        print(f"Monthly Waste Found:     ${results['total_waste']:,.2f}/mo")
+        print(f"Projected Annual Waste:  ${results['annualized_waste']:,.2f}/yr")
+        print(f"Security Flags:          {len(results['anomalies'])}")
+        print("==================================================")
         print("Generated 'audit_report.json' and 'executive_summary.md'.")
-        
+
         # Enterprise trigger for remediation
         if args.remediate:
             if HAS_REMEDIATION:
                 print("\n[Enterprise Feature] Triggering automated remediation generator...")
                 generate_remediation_script(raw_df, "remediate_anomalies.sh")
             else:
-                print("\n[Lite Version] 1-Click Remediation is an Enterprise feature.")
-                print("Upgrade to Enterprise to automatically generate deletion scripts!")
-            
-        if args.compliance:
+                print("\n[!] 1-Click Bash Remediation (--remediate) requires the Enterprise Edition.")
+
+        if args.compliance and HAS_COMPLIANCE:
             print("\n[Compliance Feature] Triggering SOC2/ISO27001 audit exporter...")
             generate_compliance_report(raw_df)
-            
+
+        # Always show upgrade footer in Lite repository
+        if not HAS_REMEDIATION:
+            print("\n--------------------------------------------------")
+            print(f"Eliminate ${results['annualized_waste']:,.2f}/yr in projected AWS waste automatically:")
+            print("  * Auto-generate safe bash cleanup scripts (--remediate)")
+            print("  * Multi-account AWS Organization STS scanning engine")
+            print("  * Automated weekly GitHub Actions CI/CD audit workflow")
+            print(f"  -> Upgrade to Enterprise ($99 Lifetime): {ENTERPRISE_URL}")
+            print("--------------------------------------------------")
+
     except Exception as e:
         print(f"\n[!] Audit Failed: {e}", file=sys.stderr)
         sys.exit(1)
