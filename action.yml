@@ -10,22 +10,6 @@ inputs:
     description: 'Path to the AWS usage/billing CSV file to audit'
     required: false
     default: 'sample_aws_data.csv'
-  compliance:
-    description: 'Set to true to export SOC2/ISO27001 compliance evidence CSV'
-    required: false
-    default: 'false'
-  remediate:
-    description: 'Set to true to generate remediate_anomalies.sh (Requires Pro license_key)'
-    required: false
-    default: 'false'
-  license_key:
-    description: 'Gumroad Pro License Key to unlock automated remediation and webhook alerts'
-    required: false
-    default: ''
-  webhook_url:
-    description: 'Slack, Discord, or Teams webhook URL for real-time cost drift alerts (Requires Pro license_key)'
-    required: false
-    default: ''
 
 outputs:
   total_waste:
@@ -51,22 +35,14 @@ runs:
     - name: Run FinOps Infrastructure Audit
       id: run-audit
       shell: bash
-      env:
-        FINOPS_LICENSE_KEY: ${{ inputs.license_key }}
-        FINOPS_WEBHOOK_URL: ${{ inputs.webhook_url }}
       run: |
         target_file="${{ inputs.file }}"
         if [ ! -f "$target_file" ] && [ -f "${{ github.action_path }}/$target_file" ]; then
           target_file="${{ github.action_path }}/$target_file"
         fi
-        FLAGS=""
-        if [ "${{ inputs.compliance }}" = "true" ]; then
-          FLAGS="$FLAGS --compliance"
-        fi
-        if [ "${{ inputs.remediate }}" = "true" ]; then
-          FLAGS="$FLAGS --remediate"
-        fi
-        python3 "${{ github.action_path }}/infrastructure_auditor.py" --file "$target_file" $FLAGS
+        
+        python3 "${{ github.action_path }}/infrastructure_auditor.py" --file "$target_file"
+        
         if [ -f "executive_summary.md" ] && [ -n "$GITHUB_STEP_SUMMARY" ]; then
           cat executive_summary.md >> "$GITHUB_STEP_SUMMARY"
         fi
