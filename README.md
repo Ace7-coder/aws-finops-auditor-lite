@@ -30,7 +30,7 @@ The free Lite engine runs a local parallel pipeline against exported AWS billing
 
 1. Clone the repository:
    ```bash
-   git clone [https://github.com/Ace7-coder/aws-finops-auditor-lite.git](https://github.com/Ace7-coder/aws-finops-auditor-lite.git)
+   git clone https://github.com/Ace7-coder/aws-finops-auditor-lite.git
    cd aws-finops-auditor-lite
    ```
 
