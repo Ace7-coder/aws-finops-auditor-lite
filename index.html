@@ -112,7 +112,7 @@
         Instead of hunting through Cost Explorer manually, run the open-source Python & Pandas CLI to isolate <code>available</code> EBS volumes, idle EC2 instances, and unencrypted resources, or upgrade to the Enterprise Tier for multi-account AWS Organization scanning and 1-click bash remediation scripts (<code>remediate_anomalies.sh</code>).
       </p>
       <div class="btn-row">
-        <a class="btn btn-primary" href="https://aisser.gumroad.com/l/krgac" target="_blank" rel="noopener">Get Enterprise Suite ($99 Lifetime Access)</a>
+        <a class="btn btn-primary" href="https://aisser.gumroad.com/l/vpcju" target="_blank" rel="noopener">Get Enterprise Suite ($99 Lifetime Access)</a>
         <a class="btn btn-secondary" href="https://github.com/Ace7-coder/aws-finops-auditor-lite" target="_blank" rel="noopener">Clone Free Open-Source CLI on GitHub</a>
       </div>
     </div>
@@ -129,16 +129,3 @@
       const storageWaste = (ebsGb * ebsRate) + (snapGb * 0.05);
       const monthlyTotal = storageWaste + idleEc2;
       const annualTotal = monthlyTotal * 12;
-
-      const discountFactor = spMonths === 36 ? 0.50 : 0.72;
-      const lockedWaste = idleEc2 * discountFactor * spMonths;
-
-      document.getElementById('monthlyWaste').textContent = '$' + monthlyTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' / mo';
-      document.getElementById('storageBreakdown').textContent = 'Orphaned EBS + Snapshots: $' + storageWaste.toFixed(0) + '/mo | Idle EC2: $' + idleEc2.toFixed(0) + '/mo';
-      document.getElementById('annualWaste').textContent = '$' + annualTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' / yr';
-      document.getElementById('spPenalty').textContent = '$' + lockedWaste.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' locked in';
-    }
-    calculate();
-  </script>
-</body>
-</html>
