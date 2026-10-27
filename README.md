@@ -9,10 +9,10 @@ This repository contains the **free core-logic preview** for analyzing basic AWS
 Want to stop manually deleting orphaned resources? The **Enterprise AWS FinOps Auditor** is a complete, automated multi-region financial cost waste calculator and remediation engine.
 
 **Enterprise Exclusive Features:**
-* **Automated Multi-Region Scanning:** Scans all active AWS regions simultaneously.
-* **Zero-Setup Credential Handling:** Automatically assumes cross-account roles.
-* **Slack & Teams Integrations:** Pushes daily/weekly waste reports directly to your engineering channels.
-* **1-Click Remediation:** Generates execution scripts to instantly delete orphaned resources.
+- **Automated Multi-Region Scanning:** Scans all active AWS regions simultaneously.
+- **Zero-Setup Credential Handling:** Automatically assumes cross-account roles.
+- **Slack & Teams Integrations:** Pushes daily/weekly waste reports directly to your engineering channels.
+- **1-Click Remediation:** Generates execution scripts to instantly delete orphaned resources.
 
 👉 [Download the Enterprise Engine Here](https://aisser.gumroad.com/l/vpcju)
 
@@ -21,10 +21,10 @@ Want to stop manually deleting orphaned resources? The **Enterprise AWS FinOps A
 ## Lite Version Overview
 
 The free Lite engine runs a local parallel pipeline against exported AWS billing or usage CSVs. It executes multi-vector financial cost waste calculations to flag:
-* Unattached EBS Volumes
-* Idle EC2 Instances (CPU < 5%)
-* Unassociated Elastic IPs
-* Public-facing security anomalies
+- Unattached EBS Volumes
+- Idle EC2 Instances (CPU < 5%)
+- Unassociated Elastic IPs
+- Public-facing security anomalies
 
 ### Quickstart
 
@@ -32,3 +32,15 @@ The free Lite engine runs a local parallel pipeline against exported AWS billing
    ```bash
    git clone [https://github.com/Ace7-coder/aws-finops-auditor-lite.git](https://github.com/Ace7-coder/aws-finops-auditor-lite.git)
    cd aws-finops-auditor-lite
+   ```
+
+2. Install required dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Run the auditor against your sample data:
+   ```bash
+   python infrastructure_auditor.py --input sample_aws_data.csv
+   ```
+   
+
