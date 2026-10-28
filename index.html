@@ -129,3 +129,16 @@
       const storageWaste = (ebsGb * ebsRate) + (snapGb * 0.05);
       const monthlyTotal = storageWaste + idleEc2;
       const annualTotal = monthlyTotal * 12;
+
+      const discountFactor = spMonths === 36 ? 0.50 : 0.72;
+      const lockedWaste = idleEc2 * discountFactor * spMonths;
+
+      document.getElementById('monthlyWaste').textContent = '$' + monthlyTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' / mo';
+      document.getElementById('storageBreakdown').textContent = 'Orphaned EBS + Snapshots: $' + storageWaste.toFixed(0) + '/mo | Idle EC2: $' + idleEc2.toFixed(0) + '/mo';
+      document.getElementById('annualWaste').textContent = '$' + annualTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' / yr';
+      document.getElementById('spPenalty').textContent = '$' + lockedWaste.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' locked in';
+    }
+    calculate();
+  </script>
+</body>
+</html>
