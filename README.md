@@ -40,7 +40,7 @@ The free Lite engine runs a local parallel pipeline against exported AWS billing
    ```
 3. Run the auditor against your sample data:
    ```bash
-   python infrastructure_auditor.py --input sample_aws_data.csv
+   python infrastructure_auditor.py --file sample_aws_data.csv
    ```
    
 
