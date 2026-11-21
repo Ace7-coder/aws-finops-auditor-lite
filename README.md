@@ -18,7 +18,7 @@ This repository contains the **free community edition** for analyzing basic AWS 
 | Automated 1-Click Remediation Scripts (`--remediate`) | No | **Yes** |
 | Commercial Assessment License (Agency/Client Rights) | No | **Yes** |
 
-👉 **[Get the Consultant & MSP Toolkit on Gumroad](https://aisser.gumroad.com/l/krgac)** *(Practitioner $99 / Agency Pack $499)*
+👉 **[Get the Consultant & MSP Toolkit on Gumroad](https://aisser.gumroad.com/l/krgac)** *(Practitioner $149/yr / Agency Pack $999/yr)*
 
 ---
 
@@ -38,14 +38,25 @@ Built for cloud consultants, MSPs, and infrastructure teams managing multi-accou
 ## Lite Version Overview
 
 The free Lite engine executes multi-vector cost and anomaly calculations locally against exported AWS billing or usage CSV files. It flags:
-- **Unattached EBS Volumes:** Identifies detached `gp2`, `gp3`, and `io2` storage incurring baseline monthly costs.
-- **Idle EC2 Instances:** Flags active compute instances running at sub-5% average CPU utilization.
-- **Unassociated Elastic IPs:** Catches unattached public IPv4 addresses incurring hourly reservation fees.
-- **Security & Configuration Anomalies:** Identifies unencrypted volumes and internet-exposed endpoints.
+- **Unattached EBS Volumes:** Adds up the unattached-storage costs reported in your export, covering detached `gp2`, `gp3`, and `io2` volumes that keep billing every month.
+- **Idle EC2 Instances:** Flags compute rows whose average CPU utilization is under 5% and counts their cost as waste.
+- **Unassociated Elastic IPs:** Counts charges for unattached public IPv4 addresses included in your export, which incur hourly reservation fees.
+- **Security & Configuration Anomalies:** Flags rows your export marks as unencrypted or exposed to the public internet.
 
 ### Quickstart
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/Ace7-coder/aws-finops-auditor-lite.git](https://github.com/Ace7-coder/aws-finops-auditor-lite.git)
+   git clone https://github.com/Ace7-coder/aws-finops-auditor-lite.git
    cd aws-finops-auditor-lite
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Run the auditor against the bundled sample data:**
+   ```bash
+   python infrastructure_auditor.py --file sample_aws_data.csv
+   ```
